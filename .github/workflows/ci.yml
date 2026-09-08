@@ -1,0 +1,51 @@
+# spark-neovim CI: the plugin inside a real neovim, in a pty, against a stub
+# spark -- on Ubuntu, Arch and macOS. Plus the privacy patterns and ASCII docs.
+name: ci
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: privacy gate over the whole tree
+        env:
+          SPARK_PRIVACY_TERMS_SECRET: ${{ secrets.SPARK_PRIVACY_TERMS }}
+        run: |
+          printf '%s\n' "$SPARK_PRIVACY_TERMS_SECRET" > "$RUNNER_TEMP/privacy-terms"
+          terms=$(cat .privacy-terms "$RUNNER_TEMP/privacy-terms" | grep -v '^#' | grep -v '^[[:space:]]*$' | sort -u | paste -sd'|' -)
+          if [ -z "$terms" ]; then echo "NOTICE: no privacy word list -- generic patterns only"; else
+            ! git grep -i -w -E "$terms" -- . ':(exclude).privacy-terms'; fi
+          ! git grep -n -E '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' -- . | grep -v 'you@example.com'
+          ! git grep -n -E '\b(10\.[0-9]+\.[0-9]+\.[0-9]+|192\.168\.[0-9]+\.[0-9]+|172\.(1[6-9]|2[0-9]|3[01])\.[0-9]+\.[0-9]+)\b' -- .
+      - name: ascii docs
+        run: |
+          tab=$(printf '\t')
+          for f in README.md CHANGELOG.md CREDITS.md LICENSE doc/spark.txt; do
+            ! LC_ALL=C grep -n "[^ -~${tab}]" "$f"; done
+      - name: neovim
+        run: sudo apt-get install -y -qq neovim >/dev/null && nvim --version
+      - name: the plugin in a pty
+        run: python3 tests/neovim_pty.py
+  arch:
+    # the same pty test where neovim comes from pacman. The privacy and
+    # ascii gates ran once, on linux.
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    timeout-minutes: 10
+    steps:
+      - run: pacman -Syu --noconfirm --needed git >/dev/null
+      - uses: actions/checkout@v4
+      - name: neovim
+        run: pacman -S --noconfirm --needed neovim python >/dev/null && nvim --version
+      - name: the plugin in a pty
+        run: python3 tests/neovim_pty.py
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: neovim
+        run: brew install neovim >/dev/null && nvim --version
+      - name: the plugin in a pty (Apple's python 3.9)
+        run: /usr/bin/python3 tests/neovim_pty.py

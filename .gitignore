@@ -1,0 +1,7 @@
+*~
+.*.swp
+*.bak
+__pycache__/
+*.pyc
+.DS_Store
+.claude/

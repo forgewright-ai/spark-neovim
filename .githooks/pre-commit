@@ -1,0 +1,52 @@
+#!/bin/sh
+# spark-neovim pre-commit gate: the privacy patterns spark uses, syntax,
+# and ASCII docs. A missing tool is a NOTICE, never a silent pass.
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+fail=0
+notice() { printf 'NOTICE: %s\n' "$*"; }
+bad() { printf 'pre-commit: %s\n' "$*"; fail=1; }
+
+# --- 1. privacy gate: staged content only -------------------------------
+staged_files=$(git diff --cached --name-only --diff-filter=ACMR)
+if [ -n "$staged_files" ]; then
+    local_terms=${SPARK_PRIVACY_TERMS:-${XDG_CONFIG_HOME:-$HOME/.config}/spark/privacy-terms}
+    terms=$(cat .privacy-terms "$local_terms" 2>/dev/null \
+            | sed 's/#.*//; s/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$' | sort -u | paste -sd'|' -)
+    [ -n "$terms" ] || notice "no privacy word list ($(printf '%s' "$local_terms" | sed "s|^$HOME|~|")) -- generic patterns only"
+    added=$(git diff --cached --diff-filter=ACMR -U0 -- . ':(exclude).privacy-terms' \
+            | grep '^+' | grep -v '^+++' || true)
+    if [ -n "$added" ]; then
+        if [ -n "$terms" ]; then
+            hit=$(printf '%s\n' "$added" | grep -iEn "\\b($terms)\\b" || true)
+            [ -z "$hit" ] || bad "banned word in staged change:
+$hit"
+        fi
+        hit=$(printf '%s\n' "$added" | grep -En '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' \
+              | grep -v 'you@example.com' || true)
+        [ -z "$hit" ] || bad "e-mail address in staged change:
+$hit"
+        hit=$(printf '%s\n' "$added" \
+              | grep -En '\b(10\.[0-9]+\.[0-9]+\.[0-9]+|192\.168\.[0-9]+\.[0-9]+|172\.(1[6-9]|2[0-9]|3[01])\.[0-9]+\.[0-9]+)\b' || true)
+        [ -z "$hit" ] || bad "private IPv4 address in staged change:
+$hit"
+        hit=$(printf '%s\n' "$added" | grep -En '(^.|[^[:alnum:]/._-])/(home|Users)/[A-Za-z0-9_-]+' || true)
+        [ -z "$hit" ] || bad "home path naming a user in staged change:
+$hit"
+    fi
+fi
+
+# --- 2. syntax ------------------------------------------------------------
+python3 -m py_compile tests/*.py || bad "python syntax"
+if command -v luac >/dev/null 2>&1; then luac -p lua/spark/init.lua plugin/spark.lua || bad "lua syntax"; else notice "luac not found; skipped"; fi
+sh -n .githooks/pre-commit || bad "sh syntax"
+
+# --- 3. docs stay ASCII (read in the editor's help pane, and on a console)
+tab=$(printf '\t')
+for f in README.md CHANGELOG.md CREDITS.md LICENSE doc/spark.txt; do
+    hit=$(LC_ALL=C grep -n "[^ -~${tab}]" "$f" | head -3 || true)
+    [ -z "$hit" ] || bad "non-ASCII in $f:
+$hit"
+done
+
+[ "$fail" -eq 0 ] || { printf 'pre-commit: refused\n'; exit 1; }

@@ -1,0 +1,65 @@
+*spark.txt*  spark -- your own AI, in this editor
+
+Your key (the README suggests Alt-s) opens the `spark> ` prompt. What you
+type there decides what happens:            *spark* *spark-prompt* *:Spark*
+
+    (nothing) Enter      complete at the cursor: the rest of the sentence,
+                         statement or block, left selected -- `u` undoes.
+                         End your text with a space (or a new line) first:
+                         the continuation begins exactly there
+    words                rewrite the selection as the words ask ("shorter",
+                         "fix grammar", "add a docstring"); with nothing
+                         selected, the whole file is rewritten in place.
+                         The new text is left selected: it is a proposal,
+                         never applied silently. Select the whole unit you
+                         mean -- the paragraph, the function -- not a word
+                         of it: a fragment comes back as exactly that
+                         fragment. Keep editing while it thinks if you
+                         like: an answer whose text moved or changed
+                         meanwhile opens in a pane instead of being
+                         spliced over the wrong place
+    ? words              ask about the selection (or the whole file) in a
+                         pane on the right; with a selection, the file
+                         around it goes along as context
+    ?                    review the selection or the file: a few sentences,
+                         then a handful of quoted notes. Every quote is
+                         checked against your text; one it does not hold
+                         is followed by [not in the text]
+    ledger               the notes declined for this file (d in a pane),
+                         newest first, in a pane of their own
+    ledger clear         drop them: the next ? may raise them again
+    ?? words             go on: one more question in the newest pane's
+                         thread; the answer lands under the first
+
+`:Spark {words}` does the same without the prompt; with a range, the lines
+are the selection (`:'<,'>Spark shorter`).
+
+In a spark pane, single keys act:                          *spark-pane*
+
+    q, Escape            close the pane
+    Enter                jump to the quote on this line in your file,
+                         selected -- or "not in the text as written"
+    a                    apply the code block under the cursor: it replaces
+                         the selection the question was about when that is
+                         still there, else lands at your cursor, selected
+    d                    decline the note under the cursor: it leaves the
+                         pane and spark's ledger keeps it under the file's
+                         name -- not raised again for this file
+
+OPTIONS                                                    *spark-options*
+
+    vim.g.spark_about    a sticky hint: what this buffer is, when spark
+                         should not guess ("a poem", "a changelog");
+                         `vim.b.spark_about` narrows it to one buffer
+    vim.g.spark_bin      the spark binary, when it is not on PATH
+    vim.g.spark_disable  true switches the plugin off
+
+WHAT LEAVES THIS MACHINE                                   *spark-privacy*
+
+The file's name and its text -- 6 kB around the cursor for a completion,
+12 kB for a rewrite, 16 kB for a question -- never its path, and only to
+the brain spark is configured for. Every run is one call to `spark edit`
+with the text on stdin; the plugin never speaks HTTP and never sees a
+token. Nothing runs until you ask.
+
+vim:tw=78:ts=8:noet:ft=help:norl:

@@ -1,0 +1,14 @@
+# Words that must never appear in this repository -- one per line, matched
+# case-insensitively as whole words by .githooks/pre-commit over the staged
+# diff and by `spark check` (privacy row) over the working tree.
+#
+# The personal words are not here: they live in ~/.config/spark/privacy-terms
+# (or the file named by SPARK_PRIVACY_TERMS), one per line, `#` comments
+# allowed, 0600, never committed. This file may hold project-wide generic
+# words that every clone should refuse (none today). The generic patterns --
+# e-mail addresses, private IPv4 ranges, home paths naming a user -- are in
+# the hook itself and always run, word list or not.
+#
+# spark is built for strangers: nothing in it may name a person, a machine,
+# a project or a tool that is not spark itself. Add a line to the local list
+# when you notice a leak; never remove one to make a commit pass.
