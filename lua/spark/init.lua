@@ -1,4 +1,4 @@
-local VERSION = "1.0.0"
+local VERSION = "1.0.1"
 
 -- spark/init.lua -- spark in neovim (the second smart tool). One key opens
 -- the `spark> ` prompt; Enter alone completes at the cursor, words rewrite
@@ -399,7 +399,7 @@ local function spawn(bp, args, stdin, state)
     state.job = job
     vim.fn.chansend(job, stdin)
     vim.fn.chanclose(job, "stdin")
-    notice("spark: thinking")
+    notice(("spark: thinking -- %d characters"):format(#stdin))
 end
 
 -- --------------------------------------------------------------- kinds --

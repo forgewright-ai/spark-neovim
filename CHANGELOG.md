@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- The `spark: thinking` notice names the size -- `spark: thinking --
+  6142 characters` -- the same fact the reader plugins' pulse shows;
+  the editor stays non-blocking, so the line is still, not animated.
+
 ## 1.0.0
 
 - spark in neovim, spark-micro's whole shape under one key: the `spark> `
