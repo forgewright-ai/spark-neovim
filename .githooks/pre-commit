@@ -43,7 +43,7 @@ sh -n .githooks/pre-commit || bad "sh syntax"
 
 # --- 3. docs stay ASCII (read in the editor's help pane, and on a console)
 tab=$(printf '\t')
-for f in README.md CHANGELOG.md CREDITS.md LICENSE doc/spark.txt; do
+for f in README.md CHANGELOG.md CHEATSHEET.md CREDITS.md LICENSE doc/spark.txt; do
     hit=$(LC_ALL=C grep -n "[^ -~${tab}]" "$f" | head -3 || true)
     [ -z "$hit" ] || bad "non-ASCII in $f:
 $hit"

@@ -21,7 +21,7 @@ jobs:
       - name: ascii docs
         run: |
           tab=$(printf '\t')
-          for f in README.md CHANGELOG.md CREDITS.md LICENSE doc/spark.txt; do
+          for f in README.md CHANGELOG.md CHEATSHEET.md CREDITS.md LICENSE doc/spark.txt; do
             ! LC_ALL=C grep -n "[^ -~${tab}]" "$f"; done
       - name: neovim
         run: sudo apt-get install -y -qq neovim >/dev/null && nvim --version
