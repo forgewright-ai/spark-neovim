@@ -33,7 +33,8 @@ The plugin binds no key by itself; Alt-s is the suggestion (Option-s on a
 Mac -- spark's Terminal profile makes Option the Meta key), any key works.
 Update with `git -C ~/.config/nvim/pack/spark/start/spark pull`. A plugin
 manager does the same from the repo's address (lazy.nvim:
-`{ "forgewright-ai/spark-neovim" }`).
+`{ "forgewright-ai/spark-neovim" }`). The keys, and what to ask:
+`CHEATSHEET.md`.
 
 ## Options
 
