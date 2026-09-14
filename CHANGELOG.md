@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2
+
+- A summary-shaped rewrite is shown, not spliced: words without a ?
+  ("summarize this") that come back at less than half of a text past
+  600 characters land in the pane, the file untouched -- an answer
+  wearing a rewrite's clothes must not destroy the text it answers
+  about. The infobar teaches the grammar: a question starts with ?.
+
 ## 1.0.1
 
 - The `spark: thinking` notice names the size -- `spark: thinking --

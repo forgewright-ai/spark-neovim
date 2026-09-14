@@ -184,6 +184,27 @@ def main():
             stdin = ""
         ok(stdin == "hello world\n", "the whole buffer travelled on stdin", repr(stdin))
 
+        # A2. a summary-shaped rewrite is shown, not spliced: words
+        # without a ? that come back a fraction of a big text land in
+        # the pane, and the file keeps its text
+        big = os.path.join(work, "big.md")
+        with open(big, "w") as f:
+            f.write(("the fair runs on saturdays in the central square " * 16).strip() + "\n")
+        m = Editor([nvim, "-u", init, "-i", "NONE", "big.md"], env, work)
+        ok(m.expect("central"), "the big file draws", m.plain()[-200:])
+        m.send("\x1bs")
+        m.expect("spark>")
+        m.send("summarize this text\r")
+        ok(m.expect("spliced"), "a far-shorter rewrite is shown, not spliced", m.plain()[-300:])
+        m.send("q")                  # close the pane
+        m.send(":qa!\r")
+        m.read(1.0)
+        m.close()
+        with open(big) as f:
+            kept = f.read()
+        ok("central square" in kept and "STUB-EDIT" not in kept,
+           "the file keeps its text: nothing was destroyed", repr(kept[:80]))
+
         # B. :Spark (no Alt), a question: a pane on the right
         m = fresh()
         m.send(":Spark ? why\r")

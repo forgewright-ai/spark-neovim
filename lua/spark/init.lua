@@ -1,4 +1,4 @@
-local VERSION = "1.0.1"
+local VERSION = "1.0.2"
 
 -- spark/init.lua -- spark in neovim (the second smart tool). One key opens
 -- the `spark> ` prompt; Enter alone completes at the cursor, words rewrite
@@ -319,6 +319,14 @@ local function on_exit(state)
     if state.kind == "rewrite" then
         if state.acc == state.sel.text then
             notice("spark: unchanged")
+            return
+        end
+        -- a rewrite that came back a fraction of the text it replaces
+        -- is summary-shaped: an answer wearing a rewrite's clothes
+        -- ("summarize" typed without the ?). Show it, do not splice it.
+        if #state.sel.text > 600 and #state.acc * 2 < #state.sel.text then
+            show_pane(state.bp, state.acc)
+            notice("spark: far shorter than the text -- in the pane, not spliced (? asks)")
             return
         end
         -- the text it rewrote must still be there: an edit meanwhile moved
