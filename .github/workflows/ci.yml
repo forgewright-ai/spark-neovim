@@ -2,27 +2,42 @@
 # spark -- on Ubuntu, Arch and macOS. Plus the privacy patterns and ASCII docs.
 name: ci
 on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
 jobs:
   linux:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4.4.0
+        with:
+          persist-credentials: false
       - name: privacy gate over the whole tree
+        # the personal word list is a repository secret (one word per line);
+        # each word escaped for grep -E, and -l everywhere: a hit names the
+        # file, never the line -- this log is public. A fork without the
+        # secret gets a NOTICE and the generic patterns only. Each check is
+        # an if/exit 1: a negated pipeline (`! git grep ...`) is exempt from
+        # errexit, so only the last one would decide the step.
         env:
           SPARK_PRIVACY_TERMS_SECRET: ${{ secrets.SPARK_PRIVACY_TERMS }}
         run: |
           printf '%s\n' "$SPARK_PRIVACY_TERMS_SECRET" > "$RUNNER_TEMP/privacy-terms"
-          terms=$(cat .privacy-terms "$RUNNER_TEMP/privacy-terms" | grep -v '^#' | grep -v '^[[:space:]]*$' | sort -u | paste -sd'|' -)
+          terms=$(cat .privacy-terms "$RUNNER_TEMP/privacy-terms" | grep -v '^#' | grep -v '^[[:space:]]*$' | sort -u | sed 's,[][\.*^$+?(){}|/],\\&,g' | paste -sd'|' -)
           if [ -z "$terms" ]; then echo "NOTICE: no privacy word list -- generic patterns only"; else
-            ! git grep -i -w -E "$terms" -- . ':(exclude).privacy-terms'; fi
-          ! git grep -n -E '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' -- . | grep -v 'you@example.com'
-          ! git grep -n -E '\b(10\.[0-9]+\.[0-9]+\.[0-9]+|192\.168\.[0-9]+\.[0-9]+|172\.(1[6-9]|2[0-9]|3[01])\.[0-9]+\.[0-9]+)\b' -- .
+            if git grep -l -i -w -E "$terms" -- . ':(exclude).privacy-terms'; then
+              echo "privacy: a listed word is in the tree"; exit 1; fi; fi
+          hits=$(git grep -n -E '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' -- . | grep -v 'you@example.com' | cut -d: -f1 | sort -u || true)
+          if [ -n "$hits" ]; then
+            printf '%s\n' "$hits"; echo "privacy: an e-mail address is in the tree"; exit 1; fi
+          if git grep -l -E '\b(10\.[0-9]+\.[0-9]+\.[0-9]+|192\.168\.[0-9]+\.[0-9]+|172\.(1[6-9]|2[0-9]|3[01])\.[0-9]+\.[0-9]+)\b' -- .; then
+            echo "privacy: a private IPv4 is in the tree"; exit 1; fi
       - name: ascii docs
         run: |
           tab=$(printf '\t')
           for f in README.md CHANGELOG.md CHEATSHEET.md CREDITS.md LICENSE doc/spark.txt; do
-            ! LC_ALL=C grep -n "[^ -~${tab}]" "$f"; done
+            if LC_ALL=C grep -n "[^ -~${tab}]" "$f"; then
+              echo "non-ASCII in $f"; exit 1; fi; done
       - name: neovim
         run: sudo apt-get install -y -qq neovim >/dev/null && nvim --version
       - name: the plugin in a pty
@@ -31,11 +46,13 @@ jobs:
     # the same pty test where neovim comes from pacman. The privacy and
     # ascii gates ran once, on linux.
     runs-on: ubuntu-latest
-    container: archlinux:latest
+    container: archlinux:latest   # zizmor: ignore[unpinned-images] a rolling distro: latest is the only Arch there is, and -Syu moves it to today anyway
     timeout-minutes: 10
     steps:
       - run: pacman -Syu --noconfirm --needed git >/dev/null
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4.4.0
+        with:
+          persist-credentials: false
       - name: neovim
         run: pacman -S --noconfirm --needed neovim python >/dev/null && nvim --version
       - name: the plugin in a pty
@@ -44,7 +61,9 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4.4.0
+        with:
+          persist-credentials: false
       - name: neovim
         run: brew install neovim >/dev/null && nvim --version
       - name: the plugin in a pty (Apple's python 3.9)
