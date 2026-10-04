@@ -33,6 +33,24 @@ $hit"
         hit=$(printf '%s\n' "$added" | grep -En '(^.|[^[:alnum:]/._-])/(home|Users)/[A-Za-z0-9_-]+' || true)
         [ -z "$hit" ] || bad "home path naming a user in staged change:
 $hit"
+        # secret shapes, spark's own (SECRET_SHAPES in spark's
+        # lib/spark/text.py) as grep -E: a private key block, an AWS key,
+        # a GitHub token, a Slack token, an sk- key. A hit names the shape,
+        # never the line; a line marked `spark:allow-secret` (a test
+        # fixture) is skipped.
+        lines=$(printf '%s\n' "$added" | grep -v 'spark:allow-secret' || true)
+        shapes=
+        for shape in \
+            'a private key=-----BEGIN [A-Z ]*PRIVATE KEY-----' \
+            'an AWS access key=(^|[^[:alnum:]_])AKIA[0-9A-Z]{16}([^[:alnum:]_]|$)' \
+            'a GitHub token=(^|[^[:alnum:]_])(ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{22,})' \
+            'a Slack token=(^|[^[:alnum:]_])xox[baprs]-[A-Za-z0-9-]{10,}' \
+            'an API key=(^|[^[:alnum:]_])sk-[A-Za-z0-9]{20,}'; do
+            if printf '%s\n' "$lines" | grep -Eq -e "${shape#*=}"; then
+                shapes="${shapes:+$shapes, }${shape%%=*}"
+            fi
+        done
+        [ -z "$shapes" ] || bad "a secret shape in the staged diff: $shapes"
     fi
 fi
 
